@@ -1,0 +1,85 @@
+# SPDX-License-Identifier: MIT
+# Every job ends with the tree untouched: a test that rewrites what it checks
+# is caught from outside the script, not by the script itself.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  # In CI a skip is red. The only exemption (the private cleanup list, which
+  # never travels) is written next to itself in test/limpieza.test.mjs.
+  DOS_COLORES_SIN_SALTOS: "1"
+
+jobs:
+  ancla:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20, 22, 24, 26]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm test
+        working-directory: packages/ancla
+      - run: git diff --exit-code && test -z "$(git status --porcelain)"
+
+  plugin:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { node: 18, eslint: 9.39.5 }
+          - { node: 20, eslint: 9.39.5 }
+          - { node: 22, eslint: 9.39.5 }
+          - { node: 24, eslint: 9.39.5 }
+          - { node: 26, eslint: 9.39.5 }
+          - { node: 20, eslint: 10.11.0 }
+          - { node: 22, eslint: 10.11.0 }
+          - { node: 24, eslint: 10.11.0 }
+          - { node: 26, eslint: 10.11.0 }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      # Outside the workspace on purpose: a workspace install would also bring
+      # the plugin's own devDependency and the matrix would test 9.x twice.
+      - run: npm install --prefix "$RUNNER_TEMP/eslint" --no-save --no-package-lock --no-audit --no-fund --ignore-scripts "eslint@${{ matrix.eslint }}"
+      - run: npm test
+        working-directory: packages/eslint-plugin-ancla
+        env:
+          NODE_PATH: ${{ runner.temp }}/eslint/node_modules
+          DOS_COLORES_ESLINT_ESPERADO: ${{ matrix.eslint }}
+      - run: git diff --exit-code && test -z "$(git status --porcelain)"
+
+  tipos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: npx --yes -p typescript@7.0.2 tsc -p packages/ancla/test/tipos/tsconfig.json
+      - run: git diff --exit-code && test -z "$(git status --porcelain)"
+
+  raiz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: npm run test:raiz
+      - run: node scripts/limpieza.mjs --historia
+      - run: git diff --exit-code && test -z "$(git status --porcelain)"

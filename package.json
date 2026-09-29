@@ -1,0 +1,19 @@
+{
+  "name": "dos-colores",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A check is not worth anything until it has been seen in both colours: green against what is really good, red against what is broken, and the red failing for its own reason and saying it.",
+  "license": "MIT",
+  "author": "Samy Haggag (https://github.com/mrwolf99)",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "npm run test:raiz && npm test --workspaces",
+    "test:raiz": "node --test test/censo-raiz.test.mjs test/ejemplos.test.mjs test/limpieza.test.mjs",
+    "limpieza": "node scripts/limpieza.mjs"
+  }
+}

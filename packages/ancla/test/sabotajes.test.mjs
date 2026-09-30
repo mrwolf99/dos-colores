@@ -25,8 +25,8 @@ const huella = () => Object.fromEntries(FICHEROS.map((f) => [f, crypto.createHas
 const ANTES = huella();
 const FUENTES = Object.fromEntries(FICHEROS.map((f) => [f, fs.readFileSync(path.join(PAQUETE, f), "utf8")]));
 
-// Copies both files to a fresh directory, breaks one of them, loads the copy
-// through the ESM facade (which loads the CJS copy) and runs the whole table.
+// Copies both files to a fresh directory, breaks one of them, loads the CJS copy
+// and then the ESM facade over it, and runs the whole table.
 async function aplicar(sab) {
   if (sab && !FICHEROS.includes(sab.fichero)) throw new Error(`el sabotaje «${sab.id}» apunta a ${sab.fichero}, que no se copia: no se aplicaría`);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ancla-sabotaje-"));
@@ -38,8 +38,12 @@ async function aplicar(sab) {
     let esm;
     let cjs;
     try {
-      esm = await import(pathToFileURL(path.join(dir, "ancla.mjs")).href);
+      // CJS first. On Node 18 and 20, importing a CJS file with a syntax error through
+      // the ESM facade also leaves an unhandled rejection behind, and node:test counts it
+      // against a test that has already ended. require() fails at once and leaves nothing
+      // pending; the facade then imports the module that is already in require.cache.
       cjs = createRequire(path.join(dir, "cargar.cjs"))("./ancla.cjs");
+      esm = await import(pathToFileURL(path.join(dir, "ancla.mjs")).href);
     } catch (e) {
       return { carga: e };
     }

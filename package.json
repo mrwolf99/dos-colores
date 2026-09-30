@@ -13,7 +13,7 @@
   },
   "scripts": {
     "test": "npm run test:raiz && npm test --workspaces",
-    "test:raiz": "node --test test/censo-raiz.test.mjs test/ejemplos.test.mjs test/limpieza.test.mjs test/parcial.test.mjs",
+    "test:raiz": "node --test test/censo-raiz.test.mjs test/ejemplos.test.mjs test/limpieza.test.mjs test/parcial.test.mjs test/publicar.test.mjs",
     "limpieza": "node scripts/limpieza.mjs --historia"
   }
 }

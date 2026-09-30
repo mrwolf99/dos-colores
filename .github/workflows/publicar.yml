@@ -1,0 +1,84 @@
+# SPDX-License-Identifier: MIT
+# Publishes both packages to npm when a tag vX.Y.Z is pushed, and only then.
+#
+# - Trusted publishing (OIDC): there is no npm token anywhere. npm trusts this
+#   file BY ITS NAME, publicar.yml, as written on npmjs.com: renaming it breaks
+#   publishing, and nobody would notice until the next release.
+# - `npm stage publish`: the version waits on npmjs.com (Staged Packages) until
+#   a maintainer approves it with 2FA. The trusted publisher is configured
+#   stage-only, so nothing that runs here can publish on its own.
+# - `--provenance` on purpose: npm only turns it on by itself when a lookup of
+#   the package's visibility succeeds, and when it fails it says so at verbose
+#   level and publishes without provenance. Asked for, a missing provenance is
+#   a red.
+# - 0.1.0 is published by hand: npm cannot trust a publisher for a package that
+#   does not exist yet. The steps are in PUBLICAR.md.
+#
+# test/publicar.test.mjs reads this file and turns red, naming the cause, if
+# any of these properties goes away. It reads it with test/_yaml.mjs, which
+# refuses what it does not know instead of guessing: no block scalars
+# (`run: |`), anchors or multi-line values; one line per value.
+name: publicar
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+# Nothing by default: each job asks for what it needs.
+permissions: {}
+
+jobs:
+  # The whole CI, the same file that runs on every push, with
+  # DOS_COLORES_SIN_SALTOS=1 and the cleanup with --historia: no second list of
+  # checks that could drift from the first.
+  pruebas:
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
+  # The tag, the three package.json and the CHANGELOG say the same version,
+  # and the tagged commit is in main (the full clone brings origin/main).
+  etiqueta:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - run: node scripts/antes-de-publicar.mjs --etiqueta "$GITHUB_REF_NAME"
+      - run: node scripts/antes-de-publicar.mjs --en-main
+
+  # A closed shape, compared key by key: these keys and these five steps, and
+  # nothing else (no shell, env, container, services or extra step).
+  publicar:
+    needs: [pruebas, etiqueta]
+    runs-on: ubuntu-latest
+    # The environment is part of the trust on npmjs.com, and on GitHub it only
+    # admits tags v*: see PUBLICAR.md.
+    environment: npm
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          # Exact on purpose: it comes with npm 11.19.0, and `npm stage` needs
+          # 11.15.0. A floating 24 could pick an older Node from the runner.
+          node-version: 24.21.0
+          package-manager-cache: false
+      - run: node scripts/antes-de-publicar.mjs --entorno
+      - run: npm stage publish --provenance --ignore-scripts --loglevel=verbose
+        working-directory: packages/ancla
+      - run: npm stage publish --provenance --ignore-scripts --loglevel=verbose
+        working-directory: packages/eslint-plugin-ancla

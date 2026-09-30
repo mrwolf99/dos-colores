@@ -1,11 +1,20 @@
 # SPDX-License-Identifier: MIT
 # Every job ends with the tree untouched: a test that rewrites what it checks
 # is caught from outside the script, not by the script itself.
+# Actions are pinned by full commit SHA, with the tag they had when pinned:
+# a tag can be moved, a SHA cannot.
+# test/publicar.test.mjs reads this file with test/_yaml.mjs, which refuses
+# what it does not know instead of guessing: no block scalars (`run: |`),
+# anchors or multi-line values; one line per value.
 name: ci
 
 on:
+  # Branches only: a tag vX.Y.Z runs this same file through publicar.yml,
+  # which calls it before publishing. Without the filter it would run twice.
   push:
+    branches: ["**"]
   pull_request:
+  workflow_call:
 
 permissions:
   contents: read
@@ -23,8 +32,8 @@ jobs:
       matrix:
         node: [18, 20, 22, 24, 26]
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ matrix.node }}
       - run: npm test
@@ -47,8 +56,8 @@ jobs:
           - { node: 24, eslint: 10.11.0 }
           - { node: 26, eslint: 10.11.0 }
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ matrix.node }}
       # Outside the workspace on purpose: a workspace install would also bring
@@ -64,8 +73,8 @@ jobs:
   tipos:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
       - run: npx --yes -p typescript@7.0.2 tsc -p packages/ancla/tipos/tsconfig.json
@@ -74,10 +83,10 @@ jobs:
   raiz:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
       - run: npm run test:raiz

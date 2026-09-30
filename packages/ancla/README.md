@@ -24,9 +24,13 @@ assert.ok(!body.includes("SHIPPING"));
 The names are Spanish: *desde* = from, *entre* = between, *cerca* = near,
 *ancla* = anchor, *quien* = who, *unica* = unique.
 
-**Not on npm yet.** Until it is, copy [`ancla.cjs`](ancla.cjs) (one file, no
-dependencies) and, if you want the ESM door and the types, `ancla.mjs`,
-`ancla.d.cts` and `ancla.d.mts` next to it.
+```sh
+npm install --save-dev @mrwolf99/ancla
+```
+
+Or copy [`ancla.cjs`](ancla.cjs) (one file, no dependencies) and, if you want
+the ESM door and the types, `ancla.mjs`, `ancla.d.cts` and `ancla.d.mts` next
+to it.
 
 ## Before you use it
 

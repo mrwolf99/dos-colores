@@ -4,6 +4,15 @@
   "description": "ESLint rule that reports slice(indexOf(...)) and friends: a cut at a position that can be -1.",
   "license": "MIT",
   "author": "Samy Haggag (https://github.com/mrwolf99)",
+  "homepage": "https://github.com/mrwolf99/dos-colores/tree/main/packages/eslint-plugin-ancla#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrwolf99/dos-colores.git",
+    "directory": "packages/eslint-plugin-ancla"
+  },
+  "bugs": {
+    "url": "https://github.com/mrwolf99/dos-colores/issues"
+  },
   "keywords": [
     "eslint",
     "eslintplugin",
@@ -21,6 +30,9 @@
     "rules/no-unchecked-slice.cjs",
     "docs/rules/no-unchecked-slice.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "peerDependencies": {
     "eslint": ">=9"
   },

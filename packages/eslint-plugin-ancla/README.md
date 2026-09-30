@@ -25,8 +25,12 @@ Requires ESLint 9 or later (flat config). Node: whatever your ESLint needs
 (ESLint 9 runs on Node 18.18 or later; ESLint 10 on Node 20.19, 22.13, or 24
 and later).
 
-**Not on npm yet.** Until it is, copy `index.cjs` and `rules/` into your
-project and load the plugin from there.
+```sh
+npm install --save-dev eslint eslint-plugin-ancla
+```
+
+Or copy `index.cjs`, `package.json` and `rules/` into your project and load the
+plugin from there.
 
 ## Limits
 

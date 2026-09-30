@@ -8,6 +8,9 @@ packages follow [Semantic Versioning](https://semver.org/).
 ## [0.1.0] - 2026-09-30
 
 Not published yet: this entry describes the first release as it stands.
+0.1.0 is published by hand and carries no provenance, because npm only lets a
+trusted publisher be configured for a package that already exists; from the
+next version on, releases come from `publicar.yml` with provenance.
 
 ### Added
 
@@ -49,3 +52,16 @@ Not published yet: this entry describes the first release as it stands.
 - CI: `ancla` on Node 18–26, the plugin on ESLint 9.39.5 (Node 18–26) and
   10.11.0 (Node 20–26), types with TypeScript 7.0.2, root tests; every job ends
   with `git diff --exit-code`, and a skip is red.
+- Publishing: `.github/workflows/publicar.yml` runs on a tag `vX.Y.Z` only.
+  It calls the whole CI, checks that the tag, the three `package.json` and
+  this file say the same version and that the tagged commit is in `main`
+  (`scripts/antes-de-publicar.mjs`), and then stages both packages with
+  trusted publishing (OIDC, no token) and provenance; each version goes live
+  when a maintainer has compared what was staged with the tagged commit and
+  approves it on npmjs.com with 2FA. `test/publicar.test.mjs` reads the
+  workflow and the manifests and turns red, naming the cause, when any of that
+  goes away. The job that publishes has a closed shape: any key or step that
+  is not on its list is red. Every rule is seen falling alone under its own
+  in-memory sabotage, and a census checks that every branch of the guard has
+  been seen falling; the tarball of each package is compared, file by file,
+  with the list it must contain. `PUBLICAR.md` has the manual steps.

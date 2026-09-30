@@ -34,15 +34,25 @@ Nada que instalar para la raíz ni para `ancla`: Node 18 o posterior. El plugin
 necesita ESLint 9 o posterior; sin él, sus pruebas dicen `PARCIAL:` en vez de
 fingir un verde. Con `DOS_COLORES_SIN_SALTOS=1`, como en CI, un `PARCIAL` es
 rojo, salvo una excepción escrita con su motivo junto a ella: la lista privada
-de la limpieza, que no viaja con el repositorio. Ninguno de los dos paquetes
-está todavía en npm: hasta entonces, se copian los ficheros.
+de la limpieza, que no viaja con el repositorio.
+
+Ninguno de los dos paquetes está todavía en npm. La 0.1.0 está preparada, y
+[`PUBLICAR.md`](PUBLICAR.md) cuenta cómo sale. Cuando esté, se instalan con
+`npm install --save-dev @mrwolf99/ancla` y
+`npm install --save-dev eslint eslint-plugin-ancla`; hasta entonces, se copian
+los ficheros.
 
 Nothing to install for the root or `ancla`: Node 18 or later. The plugin needs
 ESLint 9 or later; without it its tests print `PARCIAL:` instead of faking a
 green. With `DOS_COLORES_SIN_SALTOS=1`, as in CI, a `PARCIAL` is red, except for
 one exemption written down next to it with its reason: the private list of the
-cleanup, which never travels with the repository. Neither package is on npm
-yet: until then, copy the files.
+cleanup, which never travels with the repository.
+
+Neither package is on npm yet. 0.1.0 is ready, and
+[`PUBLICAR.md`](PUBLICAR.md) (in Spanish) tells how it goes out. Once it is
+there, install them with `npm install --save-dev @mrwolf99/ancla` and
+`npm install --save-dev eslint eslint-plugin-ancla`; until then, copy the
+files.
 
 ## Licencias · Licences
 

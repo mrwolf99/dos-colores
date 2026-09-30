@@ -24,6 +24,7 @@ const ESPERADO = {
         /^3\. renombrada .* y con el fallo: VERDE · el trozo mide 0 caracteres/m,
         /^4\. la misma guarda con entre\(\): ROJO por su causa$/m,
         /AnclaPerdida: anchor not found in "tienda\/pedido\.mjs" \(opening\): «export function importeLinea\(»/,
+        /^5\. y entre\(\) sobre el fuente de hoy: VERDE · el ancla no le quita el verde bueno$/m,
       ],
     },
   ],

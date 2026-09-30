@@ -213,7 +213,7 @@ Casi nada de esto es nuevo por separado, y conviene decir de dónde viene cada p
 
 ## 8. Cómo empezar mañana
 
-Ni `ancla` ni la regla de lint están todavía en npm. Hasta que lo estén, se copian: `packages/ancla/ancla.cjs` es un fichero sin dependencias, y `romper()` son unas treinta líneas en `packages/ancla/test/_romper.mjs`.
+`ancla` y la regla de lint están en npm: `npm install --save-dev @mrwolf99/ancla` y `npm install --save-dev eslint eslint-plugin-ancla`. `romper()` no se publica: son unas treinta líneas en `packages/ancla/test/_romper.mjs`, y se copian.
 
 1. **Elegir las tres guardas que más dolería que mintieran.** No las más fáciles: las que, si estuvieran en verde por error, dejarían pasar algo caro.
 2. **Sabotear cada una en copia.** Comprobar que el texto cambió, que cae exactamente lo que se esperaba —ella sola, o el conjunto que se haya escrito— y que dice por qué.

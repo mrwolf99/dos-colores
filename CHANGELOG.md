@@ -7,7 +7,7 @@ packages follow [Semantic Versioning](https://semver.org/).
 
 ## [0.1.0] - 2026-09-30
 
-Not published yet: this entry describes the first release as it stands.
+Published to npm on 2026-09-30, both packages from commit `9c2ff0c` (tag `v0.1.0`).
 0.1.0 is published by hand and carries no provenance, because npm only lets a
 trusted publisher be configured for a package that already exists; from the
 next version on, releases come from `publicar.yml` with provenance.

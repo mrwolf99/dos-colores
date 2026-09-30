@@ -62,7 +62,7 @@ that catches it:
   not there exactly once or when nothing would change. It is how every sabotage
   in the repository is applied.
 
-None of them is on npm yet; until they are, copy the files.
+`ancla` and the lint rule are on npm (`@mrwolf99/ancla`, `eslint-plugin-ancla`). `romper()` is not published: copy the file.
 
 A word on the name: Canedo (2026) calls *oracle anchoring* an oracle that takes
 its expected value from the very system it judges, and so cannot fail. The

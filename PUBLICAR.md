@@ -279,8 +279,10 @@ is on npm yet» del `README.md`, el principio de la sección 8 de
 ## 4. La confianza en npmjs.com (una vez por paquete)
 
 Con los dos paquetes ya publicados. En Chrome, con la sesión de `mrwolf99`.
-**Estas pantallas no se han podido ver**: no existen hasta que el paquete
-existe. Los nombres son los de la documentación de npm (páginas «Trusted
+**Vistas el 30 sep 2026, al configurar los dos paquetes:** el formulario es el de abajo; guardar la conexión
+y el acceso de publicación pide la llave (2FA) cada vez; y la conexión queda como `mrwolf99/dos-colores`,
+`publicar.yml`, `npm` y «Permissions: npm stage publish». (Antes de publicar no existían: el paquete
+tiene que existir.) Los nombres son los de la documentación de npm (páginas «Trusted
 publishing for npm packages» y «Staged publishing», editadas en sep 2026).
 
 Para **`@mrwolf99/ancla`**:
@@ -589,3 +591,12 @@ regla que cae nombrada. Lo que no puede leer desde aquí, y dónde se ve:
   arriba.** En el job que tiene `id-token` no queda el token de GitHub en el
   disco, no corre ningún script de los paquetes y nada tiene permisos que no
   pida.
+
+## Registro
+
+- **30 sep 2026.** 0.1.0 de los dos paquetes publicada a mano desde el commit `9c2ff0c` (npm: `gitHead`
+  igual, shasum igual al del ensayo en seco). Confianza configurada en los dos: `npm stage publish` y
+  acceso «Require two-factor authentication and disallow bypass 2fa tokens». Ensayo con la etiqueta
+  `v0.1.0` (ejecución 36709589196): `pruebas` y `etiqueta` en verde; en `publicar`, `--entorno` en verde,
+  el intercambio OIDC con npm contestó `201` («Successfully retrieved and set token») y npm paró con
+  «You cannot publish over the previously published versions: 0.1.0.», que es el rojo esperado.

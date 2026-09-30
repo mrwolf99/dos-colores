@@ -1,0 +1,42 @@
+{
+  "name": "@mrwolf99/ancla",
+  "version": "0.1.0",
+  "description": "Cut text by anchors that must be there: if the anchor is missing, the check stops with a red that names its cause instead of passing.",
+  "license": "MIT",
+  "author": "Samy Haggag (https://github.com/mrwolf99)",
+  "keywords": [
+    "test",
+    "anchor",
+    "slice",
+    "indexOf",
+    "guard"
+  ],
+  "main": "./ancla.cjs",
+  "types": "./ancla.d.cts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./ancla.d.mts",
+        "default": "./ancla.mjs"
+      },
+      "require": {
+        "types": "./ancla.d.cts",
+        "default": "./ancla.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "ancla.cjs",
+    "ancla.mjs",
+    "ancla.d.cts",
+    "ancla.d.mts"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/cjs.test.cjs test/esm.test.mjs test/sabotajes.test.mjs test/censo.test.mjs"
+  }
+}

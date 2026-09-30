@@ -86,7 +86,9 @@ for (const [fichero, pasadas] of Object.entries(ESPERADO)) {
     test(nombre, () => {
       const r = spawnSync(process.execPath, [path.join(DIR, fichero)], { cwd: RAIZ, encoding: "utf8", env: entornoLimpio(esperado.env) });
       const salida = r.stdout + r.stderr;
-      assert.deepEqual(problemas(salida, r.status, esperado), [], salida);
+      const p = problemas(salida, r.status, esperado);
+      // The cause first; the output of the example after it, for context.
+      assert.deepEqual(p, [], `${p.join("\n")}\n--- salida de ${fichero} ---\n${salida}`);
     });
   }
 }

@@ -22,6 +22,7 @@ export declare class AnclaRepetida extends Error {
   readonly name: "AnclaRepetida";
   readonly code: "ANCLA_REPETIDA";
   readonly ancla: string;
+  readonly papel: "ancla" | "abre";
   readonly posiciones: readonly [number, number];
   readonly quien: string | undefined;
 }

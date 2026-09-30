@@ -1,15 +1,20 @@
 // SPDX-License-Identifier: MIT
-// Example 3 · three states, not two: good, bad, and NOT LOOKED AT.
+// Example 3 · three results, not two: good, bad, and NOT LOOKED AT.
 //
-// Five guards over the toy shop. Each one prints ONE line that a machine can
+// Four guards over the toy shop. Each one prints ONE line that a machine can
 // read: "ok <name>", "no <name>: <why>" or "PARCIAL: <why>". The driver counts
-// with counters, never by hand, and says what it left out.
+// with counters, never by hand, says what it left out, and exits with 1 when
+// something is bad (and, in CI, when something was not looked at).
+//
+// The guard of the sending log needs a log to read. Without one it says
+// PARCIAL; given one (TIENDA_REGISTRO=<file.json>) it goes green or red like
+// any other guard, so its PARCIAL is not a verdict decided in advance.
 
+import fs from "node:fs";
 import * as tienda from "./tienda/pedido.mjs";
 
 const EN_CI = process.env.DOS_COLORES_SIN_SALTOS === "1";
-const LECTOR = /^PARCIAL:[ \t]*(.+)$/gm;
-const CLAVE_ALMACEN = undefined; // this example has no warehouse to talk to
+const LECTOR = /^PARCIAL:[ \t]*(\S.*)$/gm;
 
 const pedido = (numero, ...lineas) => ({ numero, correo: "cliente@tienda.test", lineas });
 
@@ -30,18 +35,21 @@ const GUARDAS = [
     const t = tienda.totalPedido(pedido(3));
     return t === 0 ? "ok pedido vacío" : `no pedido vacío: cobra ${t} de envío por un pedido sin nada`;
   },
-  function almacen() {
-    if (!CLAVE_ALMACEN) return "PARCIAL: sin clave del almacén; no se ha mirado si hay stock de lo que se vende";
-    return "ok almacén";
-  },
-  function colaDeEnvios() {
-    const eventos = []; // the log the guard would read is empty in this example
-    if (eventos.length === 0) return "PARCIAL: la cola de envíos no tiene eventos que mirar; «activa» no se puede afirmar con 0 eventos";
-    return "ok cola";
+  function registroDeEnvios() {
+    const ruta = process.env.TIENDA_REGISTRO;
+    if (!ruta) return "PARCIAL: sin registro de la cola de envíos (TIENDA_REGISTRO); «cada correo encolado salió» no se ha mirado";
+    const eventos = JSON.parse(fs.readFileSync(ruta, "utf8"));
+    if (!Array.isArray(eventos) || eventos.length === 0) {
+      return "PARCIAL: el registro de envíos está vacío; con 0 eventos «cada correo salió» no se puede afirmar";
+    }
+    const encolados = eventos.filter((e) => e.tipo === "encolado").map((e) => e.pedido);
+    const salidos = new Set(eventos.filter((e) => e.tipo === "enviado").map((e) => e.pedido));
+    const perdidos = encolados.filter((n) => !salidos.has(n));
+    return perdidos.length === 0 ? "ok registro de envíos" : `no registro de envíos: ${perdidos.length} correos encolados no salieron (pedidos ${perdidos.join(", ")})`;
   },
 ];
 
-console.log("Ejemplo 3 · tres estados");
+console.log("Ejemplo 3 · tres resultados");
 console.log(EN_CI ? "modo: CI (DOS_COLORES_SIN_SALTOS=1: un salto es ROJO)" : "modo: local (un salto es PARCIAL)");
 console.log("");
 
@@ -55,17 +63,24 @@ const noMirado = [...salida.matchAll(LECTOR)].length;
 const cuadra = bien + mal + noMirado === GUARDAS.length;
 console.log(`recuento: ${bien} bien · ${mal} mal · ${noMirado} NO MIRADO (de ${GUARDAS.length} guardas)${cuadra ? "" : " · EL RECUENTO NO CUADRA"}`);
 
-// The trap: \s also matches the newline, so a PARCIAL without a reason
-// swallows the next line and reads it as the reason.
+// Two traps of the reader. \s also matches the newline, so a PARCIAL without a
+// reason swallows the next line and reads it as the reason; and (.+) accepts
+// a reason made only of spaces.
 const trampa = "PARCIAL:\nok totales\n";
 const conS = /^PARCIAL:\s*(.+)$/m.exec(trampa);
-const conTab = /^PARCIAL:[ \t]*(.+)$/m.exec(trampa);
+const conTab = /^PARCIAL:[ \t]*(\S.*)$/m.exec(trampa);
 console.log(`trampa del \\s*: con /^PARCIAL:\\s*(.+)$/m, un «PARCIAL:» sin motivo se come la línea siguiente → motivo leído: «${conS && conS[1]}»`);
-console.log(`con /^PARCIAL:[ \\t]*(.+)$/m ${conTab === null ? "no casa" : "casa"}: un PARCIAL sin motivo es un defecto de la guarda, no un motivo`);
+const blanco = "PARCIAL: \n";
+const conPunto = /^PARCIAL:[ \t]*(.+)$/m.exec(blanco);
+const conNoBlanco = /^PARCIAL:[ \t]*(\S.*)$/m.exec(blanco);
+console.log(`trampa del (.+): con /^PARCIAL:[ \\t]*(.+)$/m, un motivo hecho de espacios cuenta → motivo leído: «${conPunto && conPunto[1]}»`);
+console.log(
+  `con /^PARCIAL:[ \\t]*(\\S.*)$/m ${conTab === null && conNoBlanco === null ? "no casa ninguna de las dos" : "casa alguna"}: un PARCIAL sin motivo es un defecto de la guarda, no un motivo`,
+);
 
 let veredicto;
 if (mal > 0) veredicto = `ROJO (${mal} mal${EN_CI && noMirado > 0 ? `, y ${noMirado} NO MIRADO que en CI también son rojo` : ""})`;
 else if (noMirado > 0) veredicto = EN_CI ? `ROJO (${noMirado} NO MIRADO: en CI un salto es rojo)` : `PARCIAL (${noMirado} NO MIRADO; esto no es un verde)`;
 else veredicto = "VERDE";
 console.log(`veredicto: ${veredicto}`);
-console.log("(este ejemplo sale con 0 porque es una demostración; un conductor de verdad saldría con 1)");
+process.exitCode = veredicto.startsWith("ROJO") || !cuadra ? 1 : 0;

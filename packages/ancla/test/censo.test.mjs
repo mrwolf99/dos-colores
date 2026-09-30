@@ -3,7 +3,9 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
@@ -69,6 +71,12 @@ test("el censo de sabotajes sabe fallar: un caso nuevo sin sabotaje y un sabotaj
   assert.deepEqual(sabotajesFantasma(CASOS, [...SABOTAJES, fantasma]), ["SX → caso que ya no existe"]);
 });
 
+test("los tipos viven fuera de test/, para que node --test sin argumentos no los ejecute", () => {
+  assert.ok(fs.existsSync(path.join(PAQUETE, "tipos", "tsconfig.json")), "falta tipos/tsconfig.json");
+  const enTest = fs.readdirSync(path.join(PAQUETE, "test")).filter((f) => /\.[cm]?ts$/.test(f));
+  assert.deepEqual(enTest, [], "hay ficheros de tipos dentro de test/");
+});
+
 test("ancla.d.cts y ancla.d.mts son idénticos", () => {
   const cts = fs.readFileSync(path.join(PAQUETE, "ancla.d.cts"));
   const mts = fs.readFileSync(path.join(PAQUETE, "ancla.d.mts"));
@@ -89,4 +97,48 @@ test("files, main, types y exports apuntan a ficheros que existen, y files los c
   for (const f of PKG.files) assert.ok(fs.existsSync(path.join(PAQUETE, f)), `files lista ${f} y no existe`);
   const publicados = new Set([...PKG.files.map((f) => `./${f}`), "./package.json"]);
   for (const d of destinos) assert.ok(publicados.has(d), `${d} no está en files: no se publicaría`);
+});
+
+// ---- the exports map, exercised at run time by the package name ----
+
+export function puertasQueFallan(r) {
+  const p = [];
+  if (r.cjs) p.push(`ancla.cjs no carga: ${r.cjs}`);
+  if (!r.import || r.import.error) p.push(`import del paquete: ${r.import ? r.import.error : "sin resultado"}`);
+  else {
+    if (r.import.conDefault) p.push("import del paquete da un módulo con default: no es la fachada ESM");
+    if (!r.import.mismaFuncion) p.push("import del paquete no da las mismas funciones que ancla.cjs");
+  }
+  if (!r.require || r.require.error) p.push(`require del paquete: ${r.require ? r.require.error : "sin resultado"}`);
+  else if (!r.require.esElCjs) p.push("require del paquete no da el módulo de ancla.cjs");
+  return p;
+}
+
+function puertas(dir) {
+  const r = spawnSync(process.execPath, [path.join(dir, "test", "_puertas.mjs")], { cwd: dir, encoding: "utf8" });
+  assert.equal(r.status, 0, `_puertas.mjs salió con ${r.status}: ${r.stderr}`);
+  return JSON.parse(r.stdout.trim().split("\n").pop());
+}
+
+test("exports: por el nombre del paquete, import da la fachada ESM y require el CJS", () => {
+  assert.deepEqual(puertasQueFallan(puertas(PAQUETE)), []);
+});
+
+test("exports: con las dos condiciones cruzadas, las dos puertas salen rojas y dicen cuál", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ancla-puertas-"));
+  try {
+    const pkg = structuredClone(PKG);
+    const puerta = pkg.exports["."];
+    [puerta.import.default, puerta.require.default] = [puerta.require.default, puerta.import.default];
+    assert.equal(puerta.import.default, "./ancla.cjs", "el cruce no se ha aplicado");
+    fs.mkdirSync(path.join(dir, "test"));
+    fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify(pkg, null, 2));
+    for (const f of ["ancla.cjs", "ancla.mjs"]) fs.copyFileSync(path.join(PAQUETE, f), path.join(dir, f));
+    fs.copyFileSync(path.join(PAQUETE, "test", "_puertas.mjs"), path.join(dir, "test", "_puertas.mjs"));
+    const p = puertasQueFallan(puertas(dir));
+    assert.ok(p.includes("import del paquete da un módulo con default: no es la fachada ESM"), p.join("\n"));
+    assert.ok(p.some((x) => /^require del paquete/.test(x)), p.join("\n"));
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });

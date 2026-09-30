@@ -10,7 +10,9 @@
 // failures. With DOS_COLORES_SIN_SALTOS=1 (set in CI) a skip is red, unless
 // the caller writes down why this particular skip is exempt.
 
-const LECTOR = /^PARCIAL:[ \t]*(.+)$/gm; // not \s*: it would swallow the next line
+// Not \s*: it would swallow the newline and read the next line as the reason.
+// Not (.+): a reason made only of spaces would count as a reason.
+const LECTOR = /^PARCIAL:[ \t]*(\S.*)$/gm;
 
 function parcial(t, motivo, opciones) {
   if (typeof motivo !== "string" || motivo.trim() === "") {

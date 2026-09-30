@@ -1,3 +1,4 @@
 # SPDX-License-Identifier: MIT
 node_modules/
 .worktrees/
+.DS_Store

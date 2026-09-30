@@ -4,8 +4,13 @@
 // Three checks guard the shipping rules of the toy shop. To see them red we
 // break the shop in a temporary COPY and load the copy. Before that, a control:
 // the untouched copy must pass, or copying and loading is what fails.
+//
+// This script never writes to the original, and it does not check that it is
+// intact either: a script that checks itself would say "intact" only if it
+// got to the end. Whoever launches it does that (test/ejemplos.test.mjs takes
+// the fingerprint of ejemplos/ before and after, and CI ends with
+// git diff --exit-code).
 
-import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -14,8 +19,6 @@ import { romper } from "../packages/ancla/test/_romper.mjs";
 
 const ORIGEN = new URL("./tienda/pedido.mjs", import.meta.url);
 const TEXTO = fs.readFileSync(ORIGEN, "utf8");
-const sha = () => crypto.createHash("sha256").update(fs.readFileSync(ORIGEN)).digest("hex");
-const ANTES = sha();
 
 const pedido = (importe) => ({ numero: 1, correo: "cliente@tienda.test", lineas: [{ precio: importe, unidades: 1 }] });
 
@@ -78,4 +81,4 @@ try {
   console.log(`ancla vieja con romper(): se niega · ${e.message}`);
 }
 
-console.log(`original intacto: ${sha() === ANTES ? "sha256 igual antes y después" : "EL ORIGINAL HA CAMBIADO"}`);
+console.log("original: no se ha abierto para escribir; que siga igual lo comprueba quien lanza este guion, no el guion");

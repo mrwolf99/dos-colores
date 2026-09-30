@@ -2,7 +2,7 @@
   "name": "dos-colores",
   "version": "0.1.0",
   "private": true,
-  "description": "A check is not worth anything until it has been seen in both colours: green against what is really good, red against what is broken, and the red failing for its own reason and saying it.",
+  "description": "A check only deserves trust once it has been seen in both colours: green on code that is really good, red on code that is broken, and in that red failing for the fault it claims to watch and naming it.",
   "license": "MIT",
   "author": "Samy Haggag (https://github.com/mrwolf99)",
   "workspaces": [
@@ -13,7 +13,7 @@
   },
   "scripts": {
     "test": "npm run test:raiz && npm test --workspaces",
-    "test:raiz": "node --test test/censo-raiz.test.mjs test/ejemplos.test.mjs test/limpieza.test.mjs",
+    "test:raiz": "node --test test/censo-raiz.test.mjs test/ejemplos.test.mjs test/limpieza.test.mjs test/parcial.test.mjs",
     "limpieza": "node scripts/limpieza.mjs"
   }
 }

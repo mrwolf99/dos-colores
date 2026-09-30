@@ -10,6 +10,9 @@ import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 const { parcial } = require("./_parcial.cjs");
+const { CASOS: CASOS_ANCLA } = require("../packages/ancla/test/_casos.cjs");
+const { SABOTAJES: SABOTAJES_REGLA } = require("../packages/eslint-plugin-ancla/test/_sabotajes.cjs");
+const { SABOTAJES: SABOTAJES_ANCLA } = await import("../packages/ancla/test/_sabotajes.mjs");
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const leer = (...p) => fs.readFileSync(path.join(RAIZ, ...p), "utf8");
@@ -129,4 +132,42 @@ test("el censo SPDX sabe fallar: sin cabecera, y con la licencia equivocada", ()
     { rel: "y.cjs", texto: "// SPDX-License-Identifier: MIT\n" },
   ]);
   assert.deepEqual(fallos, ["x.mjs: sin cabecera SPDX en las 5 primeras líneas", "ensayo/x.md: dice MIT y le toca CC-BY-4.0"]);
+});
+
+// ---- the numbers the prose quotes are the numbers of the code ----
+
+export function numerosQueNoCuadran(textos, reglas) {
+  const fallos = [];
+  for (const { fichero, patron, esperado } of reglas) {
+    const hallados = [...(textos[fichero] ?? "").matchAll(new RegExp(patron.source, "g"))].map((m) => Number(m[1]));
+    if (hallados.length === 0) fallos.push(`${fichero}: no cita el número (${patron})`);
+    for (const n of hallados) if (n !== esperado) fallos.push(`${fichero}: dice ${n} y son ${esperado} (${patron})`);
+  }
+  return fallos;
+}
+
+const CITAS = [
+  { fichero: "packages/ancla/README.md", patron: /(\d+) sabotages/, esperado: SABOTAJES_ANCLA.length },
+  { fichero: "packages/eslint-plugin-ancla/README.md", patron: /(\d+) sabotages/, esperado: SABOTAJES_REGLA.length },
+  { fichero: "CHANGELOG.md", patron: /table of (\d+) cases/, esperado: CASOS_ANCLA.length },
+  { fichero: "CHANGELOG.md", patron: /(\d+) sabotages, one/, esperado: SABOTAJES_ANCLA.length },
+  { fichero: "CHANGELOG.md", patron: /(\d+) sabotages with the expected/, esperado: SABOTAJES_REGLA.length },
+  { fichero: "ensayo/los-dos-colores.md", patron: /con (\d+) sabotajes —uno por/, esperado: SABOTAJES_ANCLA.length },
+  { fichero: "ensayo/los-dos-colores.md", patron: /con (\d+), en `packages\/eslint-plugin-ancla/, esperado: SABOTAJES_REGLA.length },
+];
+
+test("los números de casos y sabotajes que citan los textos son los del código", () => {
+  const textos = Object.fromEntries([...new Set(CITAS.map((c) => c.fichero))].map((f) => [f, leer(f)]));
+  assert.deepEqual(numerosQueNoCuadran(textos, CITAS), []);
+});
+
+test("el censo de números sabe fallar: un número viejo y una cita que desaparece", () => {
+  const reglas = [
+    { fichero: "a.md", patron: /(\d+) sabotages/, esperado: 56 },
+    { fichero: "b.md", patron: /(\d+) sabotages/, esperado: 26 },
+  ];
+  assert.deepEqual(numerosQueNoCuadran({ "a.md": "then 53 sabotages", "b.md": "no number here" }, reglas), [
+    "a.md: dice 53 y son 56 (/(\\d+) sabotages/)",
+    "b.md: no cita el número (/(\\d+) sabotages/)",
+  ]);
 });

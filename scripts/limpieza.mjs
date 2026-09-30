@@ -150,10 +150,12 @@ export function mirarArbol(raiz, lista) {
 }
 
 // Every commit reachable from any ref: author, committer, message and patch.
+// With -m a merge is shown against each of its parents, so that text that
+// enters the history only through a merge commit is seen too.
 export function mirarHistoria(raiz, lista) {
   const salida = execFileSync(
     "git",
-    ["log", "--all", "-p", "--no-color", "--no-ext-diff", "--format=commit %H%nAutor: %an <%ae>%nConfirma: %cn <%ce>%n%n%B"],
+    ["log", "--all", "-p", "-m", "--no-color", "--no-ext-diff", "--format=commit %H%nAutor: %an <%ae>%nConfirma: %cn <%ce>%n%n%B"],
     { cwd: raiz, encoding: "utf8", maxBuffer: 512 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] },
   );
   const lineas = salida.split("\n");

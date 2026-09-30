@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Every sabotage is applied to a COPY, in this same process, and must make
 // EXACTLY the cases it declares fall, each for its own cause. The harness is
-// itself seen in both colours at the end of the file.
+// itself seen in both colours at the end of the file. That the original is
+// left as it was is checked from outside this script (git diff --exit-code at
+// the end of every CI job); the check at the bottom is only an early warning.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -78,7 +80,7 @@ for (const s of SABOTAJES) {
 
 // ---- the harness, in both colours ----
 
-const S14 = SABOTAJES.find((s) => s.id === "S14");
+const S14 = SABOTAJES.find((s) => s.que === "entre incluye el cierre");
 
 test("arnés: un sabotaje cuya ancla no está sale rojo, no «no cae»", async () => {
   await assert.rejects(aplicar({ ...S14, id: "S-fantasma", de: "esto no está en el fuente" }), /«S-fantasma» no encuentra qué romper/);
@@ -115,6 +117,6 @@ test("arnés: un sabotaje que rompe la carga se ve como rojo ajeno, no como caza
   assert.equal(r.fallos, undefined, "con la carga rota no se ha corrido ninguna prueba");
 });
 
-test("el original sigue intacto: sha256 de antes y de después", () => {
+test("aviso temprano (la red de verdad es git diff --exit-code en CI): el original no ha cambiado mientras corría este fichero", () => {
   assert.deepEqual(huella(), ANTES);
 });

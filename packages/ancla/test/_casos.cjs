@@ -5,9 +5,11 @@
 // harness alike. Each case gets `m` (the module under test) and `ctx`
 // ({ cjs, esm }: both doors to the same implementation).
 //
-// The greens are seen against real text: this package's own source and the
-// toy shop in ejemplos/. The reds check errors by `name` and `code`, never by
-// class identity, so that only the identity case depends on the ESM facade.
+// The greens are seen against real text: the toy shop in ejemplos/ and, for
+// the header, this package's own source. The reds check errors by `name`,
+// `code` and fields, never by class identity, so that only the identity case
+// depends on the ESM facade. A case that checks several calls prefixes each
+// failure with the call, so that its red says which one fell.
 
 const fs = require("node:fs");
 const path = require("node:path");
@@ -40,15 +42,26 @@ function lanza(fn, espera) {
   throw new Error(`no lanzó: devolvió ${corto(devuelto)} (esperaba ${corto(espera)})`);
 }
 
+// Runs one of several checks of a case and prefixes its failure.
+function paso(etiqueta, fn) {
+  try {
+    return fn();
+  } catch (e) {
+    throw new Error(`${etiqueta}: ${e.message}`);
+  }
+}
+
+const ARGUMENTO = { name: "TypeError", code: "ANCLA_ARGUMENTO" };
+
 const CASOS = [
   // ---------------------------------------------------------------- greens
   {
     nombre: "desde: devuelve desde el ancla, con el ancla dentro",
     color: "verde",
     run(m) {
-      const r = m.desde(FUENTE, "function entre(", "ancla.cjs");
-      cierto(r.startsWith("function entre("), `no empieza por el ancla: ${corto(r.slice(0, 30))}`);
-      cierto(r.includes("function cerca("), "no llega hasta cerca(): no es el resto del texto");
+      const r = m.desde(PEDIDO, "export function totalPedido(", "pedido.mjs");
+      cierto(r.startsWith("export function totalPedido("), `no empieza por el ancla: ${corto(r.slice(0, 30))}`);
+      cierto(r.includes("function redondear("), "no llega hasta redondear(): no es el resto del texto");
     },
   },
   {
@@ -60,12 +73,12 @@ const CASOS = [
     },
   },
   {
-    nombre: "entre: el trozo real de buscar() empieza en su apertura y contiene su throw",
+    nombre: "entre: el trozo real de calcularEnvio() empieza en su apertura y contiene su umbral",
     color: "verde",
     run(m) {
-      const r = m.entre(FUENTE, "function buscar(", "function desde(", "ancla.cjs");
-      cierto(r.startsWith("function buscar("), `no empieza por la apertura: ${corto(r.slice(0, 30))}`);
-      cierto(r.includes("throw new AnclaPerdida"), `el trozo no contiene el throw: ${corto(r)}`);
+      const r = m.entre(PEDIDO, "export function calcularEnvio(", "export function totalPedido(", "pedido.mjs");
+      cierto(r.startsWith("export function calcularEnvio("), `no empieza por la apertura: ${corto(r.slice(0, 30))}`);
+      cierto(r.includes("ENVIO_GRATIS_DESDE"), `el trozo no contiene el umbral: ${corto(r)}`);
     },
   },
   {
@@ -98,6 +111,36 @@ const CASOS = [
     },
   },
   {
+    nombre: "cerca: la ventana no parte un carácter en dos (un emoji en el borde)",
+    color: "verde",
+    run(m) {
+      const t = "a😀X😀b";
+      const uno = m.cerca(t, "X", 1);
+      cierto(uno === "😀X😀", `con radio 1 la ventana parte el emoji: ${corto(uno)}`);
+      const cero = m.cerca(t, "X", 0);
+      cierto(cero === "X", `con radio 0 la ventana no es el ancla: ${corto(cero)}`);
+    },
+  },
+  {
+    nombre: "opciones en texto: quien no activa unica",
+    color: "verde",
+    run(m) {
+      const a = "importeLinea(";
+      cierto(PEDIDO.indexOf(a) !== PEDIDO.lastIndexOf(a), "el pedido ya no repite el ancla: el caso no mediría nada");
+      const r = m.cerca(PEDIDO, a, 0, "pedido.mjs");
+      cierto(r === a, `no devolvió el ancla: ${corto(r)}`);
+    },
+  },
+  {
+    nombre: "opciones: un objeto sin prototipo también vale",
+    color: "verde",
+    run(m) {
+      const o = Object.assign(Object.create(null), { quien: "pedido.mjs", unica: true });
+      const r = m.desde(PEDIDO, "export function totalPedido(", o);
+      cierto(r.startsWith("export function totalPedido("), `no empieza por el ancla: ${corto(r.slice(0, 30))}`);
+    },
+  },
+  {
     nombre: "identidad ESM↔CJS: las dos puertas dan los mismos objetos",
     color: "verde",
     run(m, ctx) {
@@ -119,20 +162,46 @@ const CASOS = [
   },
   // ------------------------------------------------------------------ reds
   {
-    nombre: "desde: ancla ausente lanza AnclaPerdida",
+    nombre: "desde: ancla ausente lanza AnclaPerdida con ancla, papel y quien",
     color: "rojo",
     run(m) {
-      lanza(() => m.desde(PEDIDO, "function importeDeLinea(", "pedido.mjs"), { name: "AnclaPerdida", papel: "ancla" });
+      lanza(() => m.desde(PEDIDO, "function importeDeLinea(", "pedido.mjs"), {
+        name: "AnclaPerdida",
+        papel: "ancla",
+        ancla: "function importeDeLinea(",
+        quien: "pedido.mjs",
+      });
+    },
+  },
+  {
+    nombre: "texto vacío: AnclaPerdida que dice que el texto está vacío",
+    color: "rojo",
+    run(m) {
+      const e = lanza(() => m.desde("", "export function", "pedido.mjs"), { name: "AnclaPerdida", code: "ANCLA_PERDIDA" });
+      cierto(/The text is empty/.test(e.message), `el mensaje no dice que el texto está vacío: ${corto(e.message)}`);
+      const f = lanza(() => m.desde(PEDIDO, "no está en el pedido"), { name: "AnclaPerdida" });
+      cierto(!/The text is empty/.test(f.message), "con texto, el mensaje dice que el texto está vacío");
     },
   },
   {
     nombre: "entre: cierre antes de la apertura lanza, no da un trozo vacío",
     color: "rojo",
     run(m) {
-      lanza(() => m.entre(PEDIDO, "export function calcularEnvio(", "export function importeLinea(", "pedido.mjs"), {
+      const e = lanza(() => m.entre(PEDIDO, "export function calcularEnvio(", "export function importeLinea(", "pedido.mjs"), {
         name: "AnclaPerdida",
         papel: "cierra",
       });
+      cierto(e.message.includes("(closing, searched after the opening)"), `el mensaje no dice que el cierre se buscó tras la apertura: ${corto(e.message)}`);
+    },
+  },
+  {
+    nombre: "entre: un cierre que solo aparece dentro de la apertura no cuenta",
+    color: "rojo",
+    run(m) {
+      const abre = "export function importeLinea(";
+      const cierra = "function importeLinea(";
+      cierto(PEDIDO.indexOf(cierra) === PEDIDO.lastIndexOf(cierra), "el pedido ya no tiene el cierre una sola vez: el caso no mediría nada");
+      lanza(() => m.entre(PEDIDO, abre, cierra, "pedido.mjs"), { name: "AnclaPerdida", papel: "cierra" });
     },
   },
   {
@@ -153,11 +222,11 @@ const CASOS = [
     },
   },
   {
-    nombre: "cerca: radio inválido → ANCLA_ARGUMENTO (\"abc\", -1, 1.5, NaN, Infinity)",
+    nombre: "cerca: radio inválido → ANCLA_ARGUMENTO (\"abc\", -1, 1.5, NaN, Infinity, 2**53)",
     color: "rojo",
     run(m) {
-      for (const radio of ["abc", -1, 1.5, NaN, Infinity]) {
-        lanza(() => m.cerca(PEDIDO, "importeLinea(", radio, "pedido.mjs"), { code: "ANCLA_ARGUMENTO", name: "TypeError" });
+      for (const radio of ["abc", -1, 1.5, NaN, Infinity, 2 ** 53]) {
+        paso(`radio ${corto(radio)}`, () => lanza(() => m.cerca(PEDIDO, "importeLinea(", radio, "pedido.mjs"), ARGUMENTO));
       }
     },
   },
@@ -169,8 +238,14 @@ const CASOS = [
       const i = PEDIDO.indexOf(a);
       const j = PEDIDO.indexOf(a, i + 1);
       cierto(i !== -1 && j !== -1, "el pedido ya no tiene dos apariciones: el caso no mediría nada");
-      const e = lanza(() => m.cerca(PEDIDO, a, 0, { quien: "pedido.mjs", unica: true }), { name: "AnclaRepetida" });
+      const e = lanza(() => m.cerca(PEDIDO, a, 0, { quien: "pedido.mjs", unica: true }), {
+        name: "AnclaRepetida",
+        ancla: a,
+        papel: "ancla",
+        quien: "pedido.mjs",
+      });
       cierto(Array.isArray(e.posiciones) && e.posiciones[0] === i && e.posiciones[1] === j, `posiciones ${corto(e.posiciones)} y eran [${i},${j}]`);
+      cierto(Object.isFrozen(e.posiciones), "las posiciones se pueden cambiar después de lanzar");
     },
   },
   {
@@ -182,26 +257,81 @@ const CASOS = [
     },
   },
   {
-    nombre: "ancla \"\" → ANCLA_ARGUMENTO",
+    nombre: "desde con unica: repetida → AnclaRepetida",
     color: "rojo",
     run(m) {
-      lanza(() => m.desde(PEDIDO, "", "pedido.mjs"), { code: "ANCLA_ARGUMENTO", name: "TypeError" });
+      lanza(() => m.desde(PEDIDO, "importeLinea(", { quien: "pedido.mjs", unica: true }), { name: "AnclaRepetida", papel: "ancla" });
     },
   },
   {
-    nombre: "texto undefined → ANCLA_ARGUMENTO, no AnclaPerdida",
+    nombre: "entre con unica: apertura repetida → AnclaRepetida que dice (opening)",
     color: "rojo",
     run(m) {
-      lanza(() => m.desde(undefined, "function importeLinea(", "pedido.mjs"), { code: "ANCLA_ARGUMENTO", name: "TypeError" });
+      const e = lanza(() => m.entre(PEDIDO, "importeLinea(", "\n}\n", { quien: "pedido.mjs", unica: true }), {
+        name: "AnclaRepetida",
+        papel: "abre",
+      });
+      cierto(e.message.includes("(opening)"), `el mensaje no dice qué ancla se repite: ${corto(e.message)}`);
+    },
+  },
+  {
+    nombre: "desde: ancla \"\" → ANCLA_ARGUMENTO",
+    color: "rojo",
+    run(m) {
+      lanza(() => m.desde(PEDIDO, "", "pedido.mjs"), ARGUMENTO);
+    },
+  },
+  {
+    nombre: "entre: apertura \"\" → ANCLA_ARGUMENTO",
+    color: "rojo",
+    run(m) {
+      lanza(() => m.entre(PEDIDO, "", "\n}\n", "pedido.mjs"), ARGUMENTO);
+    },
+  },
+  {
+    nombre: "entre: cierre \"\" → ANCLA_ARGUMENTO",
+    color: "rojo",
+    run(m) {
+      lanza(() => m.entre(PEDIDO, "export function importeLinea(", "", "pedido.mjs"), ARGUMENTO);
+    },
+  },
+  {
+    nombre: "cerca: ancla \"\" → ANCLA_ARGUMENTO",
+    color: "rojo",
+    run(m) {
+      lanza(() => m.cerca(PEDIDO, "", 3, "pedido.mjs"), ARGUMENTO);
+    },
+  },
+  {
+    nombre: "desde: texto undefined → ANCLA_ARGUMENTO que dice qué llegó, no AnclaPerdida",
+    color: "rojo",
+    run(m) {
+      const e = lanza(() => m.desde(undefined, "function importeLinea(", "pedido.mjs"), ARGUMENTO);
+      cierto(e.message.includes("got undefined"), `el mensaje no dice qué llegó: ${corto(e.message)}`);
+    },
+  },
+  {
+    nombre: "entre: texto que no es cadena → ANCLA_ARGUMENTO",
+    color: "rojo",
+    run(m) {
+      lanza(() => m.entre(undefined, "export function importeLinea(", "\n}\n", "pedido.mjs"), ARGUMENTO);
+    },
+  },
+  {
+    nombre: "cerca: texto que no es cadena → ANCLA_ARGUMENTO",
+    color: "rojo",
+    run(m) {
+      lanza(() => m.cerca(undefined, "importeLinea(", 3, "pedido.mjs"), ARGUMENTO);
     },
   },
   {
     nombre: "el error lleva code y name",
     color: "rojo",
     run(m) {
-      lanza(() => m.cerca(PEDIDO, "esto no está en el pedido", 5), { name: "AnclaPerdida", code: "ANCLA_PERDIDA" });
-      lanza(() => m.cerca(PEDIDO, "importeLinea(", 5, { unica: true }), { name: "AnclaRepetida", code: "ANCLA_REPETIDA" });
-      lanza(() => m.desde(PEDIDO, 42), { name: "TypeError", code: "ANCLA_ARGUMENTO" });
+      paso("AnclaPerdida", () => lanza(() => m.cerca(PEDIDO, "esto no está en el pedido", 5), { name: "AnclaPerdida", code: "ANCLA_PERDIDA" }));
+      paso("AnclaRepetida", () => lanza(() => m.cerca(PEDIDO, "importeLinea(", 5, { unica: true }), { name: "AnclaRepetida", code: "ANCLA_REPETIDA" }));
+      const e = paso("argumento", () => lanza(() => m.desde(PEDIDO, 42), ARGUMENTO));
+      cierto(e.message.includes("got number 42"), `argumento: el mensaje no dice qué llegó: ${corto(e.message)}`);
     },
   },
   {
@@ -215,17 +345,53 @@ const CASOS = [
     },
   },
   {
+    nombre: "el ancla se muestra en una sola línea, escapada y recortada",
+    color: "rojo",
+    run(m) {
+      const e = lanza(() => m.desde(PEDIDO, "\n}\t»\nno está", "pedido.mjs"), { name: "AnclaPerdida" });
+      cierto(!/[\n\t]/.test(e.message), `el mensaje lleva saltos o tabuladores sin escapar: ${corto(e.message)}`);
+      cierto(e.message.includes("«\\n}\\t\\u00bb\\nno está»"), `el ancla no sale escapada entre «»: ${corto(e.message)}`);
+      const largo = "no está en el pedido ".repeat(20);
+      const f = lanza(() => m.desde(PEDIDO, largo, "x".repeat(500)), { name: "AnclaPerdida" });
+      cierto(f.message.includes("…»"), `un ancla larga no sale recortada: ${corto(f.message)}`);
+      cierto(f.message.length < 500, `un quien de 500 caracteres no sale recortado: el mensaje mide ${f.message.length}`);
+    },
+  },
+  {
     nombre: "opción desconocida {unique:true} → ANCLA_ARGUMENTO",
     color: "rojo",
     run(m) {
-      lanza(() => m.desde(PEDIDO, "export function importeLinea(", { unique: true }), { code: "ANCLA_ARGUMENTO", name: "TypeError" });
+      lanza(() => m.desde(PEDIDO, "export function importeLinea(", { unique: true }), ARGUMENTO);
     },
   },
   {
     nombre: "opción con tipo equivocado {unica:\"sí\"} → ANCLA_ARGUMENTO",
     color: "rojo",
     run(m) {
-      lanza(() => m.desde(PEDIDO, "export function importeLinea(", { unica: "sí" }), { code: "ANCLA_ARGUMENTO", name: "TypeError" });
+      lanza(() => m.desde(PEDIDO, "export function importeLinea(", { unica: "sí" }), ARGUMENTO);
+    },
+  },
+  {
+    nombre: "opción quien que no es texto {quien:42} → ANCLA_ARGUMENTO",
+    color: "rojo",
+    run(m) {
+      lanza(() => m.desde(PEDIDO, "export function importeLinea(", { quien: 42 }), ARGUMENTO);
+    },
+  },
+  {
+    nombre: "opciones que no son un objeto simple (Map, Date, array, número, heredadas) → ANCLA_ARGUMENTO",
+    color: "rojo",
+    run(m) {
+      const raras = {
+        Map: new Map([["unica", true]]),
+        Date: new Date(0),
+        array: [],
+        número: 3,
+        heredadas: Object.create({ unica: true }),
+      };
+      for (const [etiqueta, o] of Object.entries(raras)) {
+        paso(etiqueta, () => lanza(() => m.desde(PEDIDO, "export function importeLinea(", o), ARGUMENTO));
+      }
     },
   },
 ];

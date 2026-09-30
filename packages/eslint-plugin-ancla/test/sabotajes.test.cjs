@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: MIT
 "use strict";
 // Every sabotage is applied to a COPY of the rule, in this same process, and
-// RuleTester.it is swapped for one that captures failures. Each sabotage must
-// make EXACTLY the cases it declares fall.
+// run through a subclass of RuleTester whose `it` captures failures (the
+// class itself is never touched). Each sabotage must make EXACTLY the cases it
+// declares fall, each for its own cause. That the original is left as it was
+// is checked from outside this script (git diff --exit-code in CI); the check
+// at the bottom is only an early warning.
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
@@ -29,23 +32,18 @@ function casoDe(titulo) {
 }
 
 function correr(regla) {
-  const { RuleTester } = eslint;
-  const antes = { describe: RuleTester.describe, it: RuleTester.it, itOnly: RuleTester.itOnly };
   const fallos = [];
-  RuleTester.describe = (_nombre, fn) => fn();
-  RuleTester.it = (titulo, fn) => {
+  class Capturador extends eslint.RuleTester {}
+  Capturador.describe = (_nombre, fn) => fn();
+  Capturador.it = (titulo, fn) => {
     try {
       fn();
     } catch (e) {
       fallos.push({ nombre: casoDe(titulo), mensaje: String(e && e.message) });
     }
   };
-  RuleTester.itOnly = RuleTester.it;
-  try {
-    new RuleTester(OPCIONES_TESTER).run("no-unchecked-slice", regla, { valid: VALIDOS, invalid: INVALIDOS });
-  } finally {
-    Object.assign(RuleTester, antes);
-  }
+  Capturador.itOnly = Capturador.it;
+  new Capturador(OPCIONES_TESTER).run("no-unchecked-slice", regla, { valid: VALIDOS, invalid: INVALIDOS });
   return fallos;
 }
 
@@ -68,14 +66,21 @@ async function aplicar(sab) {
   }
 }
 
+// Empty list: what fell is exactly what was declared, each for its cause.
 function comparar(fallos, caen) {
   const cayeron = [...new Set(fallos.map((f) => f.nombre))].sort();
-  const esperados = [...caen].sort();
-  return cayeron.join("\n") === esperados.join("\n") ? [] : [`cayó: [${cayeron.join(" | ")}] · se esperaba: [${esperados.join(" | ")}]`];
+  const esperados = Object.keys(caen).sort();
+  const problemas = [];
+  if (cayeron.join("\n") !== esperados.join("\n")) problemas.push(`cayó: [${cayeron.join(" | ")}] · se esperaba: [${esperados.join(" | ")}]`);
+  for (const f of fallos) {
+    if (caen[f.nombre] && !caen[f.nombre].test(f.mensaje)) problemas.push(`«${f.nombre}» cayó por otra causa: ${f.mensaje.split("\n")[0]}`);
+  }
+  return problemas;
 }
 
 if (eslint === null) {
-  test("sabotajes de la regla", (t) => parcial(t, "eslint no instalado: los 11 sabotajes de la regla no se han visto caer aquí (quedan para CI)"));
+  test("sabotajes de la regla", (t) =>
+    parcial(t, `eslint no instalado: los ${SABOTAJES.length} sabotajes de la regla no se han visto caer aquí (quedan para CI)`));
 } else {
   test("control: la copia sin tocar pasa entera", async () => {
     const r = await aplicar(null);
@@ -92,13 +97,44 @@ if (eslint === null) {
     });
   }
 
+  // ---- the harness, in both colours ----
+
+  const L01 = SABOTAJES.find((s) => s.id === "L01");
+
   test("arnés: un caen equivocado sale rojo y nombra lo que cayó y lo que se esperaba", async () => {
-    const r = await aplicar(SABOTAJES.find((s) => s.id === "L01"));
-    const p = comparar(r.fallos, ["slice(indexOf(a))"]);
+    const r = await aplicar(L01);
+    const p = comparar(r.fallos, { "slice(indexOf(a))": /./ });
     assert.deepEqual(p, ["cayó: [substring(indexOf(a), indexOf(b))] · se esperaba: [slice(indexOf(a))]"]);
+  });
+
+  test("arnés: el caso correcto cayendo por otra causa también sale rojo", async () => {
+    const r = await aplicar(L01);
+    const p = comparar(r.fallos, { "substring(indexOf(a), indexOf(b))": /una causa que no es la suya/ });
+    assert.equal(p.length, 1, p.join("\n"));
+    assert.match(p[0], /^«substring\(indexOf\(a\), indexOf\(b\)\)» cayó por otra causa: Should have 1 error but had 0/);
+  });
+
+  test("arnés: un sabotaje cuya ancla no está sale rojo, no «no cae»", async () => {
+    await assert.rejects(aplicar({ ...L01, id: "L-fantasma", de: "esto no está en la regla" }), /«L-fantasma» no encuentra qué romper/);
+  });
+
+  test("arnés: un sabotaje que no cambia nada sale rojo", async () => {
+    await assert.rejects(aplicar({ ...L01, id: "L-igual", a: L01.de }), /«L-igual» no cambia nada/);
+  });
+
+  test("arnés: un sabotaje que rompe la carga se ve como rojo ajeno, no como caza", async () => {
+    const r = await aplicar({ ...L01, id: "L-carga", de: "function nombre(callee) {", a: "function nombre(callee) {{" });
+    assert.ok(r.carga instanceof SyntaxError, `se esperaba un SyntaxError al cargar y salió ${r.carga}`);
+    assert.equal(r.fallos, undefined, "con la carga rota no se ha corrido ninguna prueba");
+  });
+
+  test("arnés: el RuleTester de eslint queda como estaba (el capturador es una subclase)", () => {
+    const antes = eslint.RuleTester.it;
+    correr(require(REGLA));
+    assert.equal(eslint.RuleTester.it, antes);
   });
 }
 
-test("el original sigue intacto: sha256 de antes y de después", () => {
+test("aviso temprano (la red de verdad es git diff --exit-code en CI): la regla no ha cambiado mientras corría este fichero", () => {
   assert.equal(huella(), ANTES);
 });

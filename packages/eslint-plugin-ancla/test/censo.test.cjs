@@ -23,13 +23,13 @@ function diferenciasScript(reales, script) {
 }
 
 function casosSinSabotaje(casos, sabotajes) {
-  const vistos = new Set(sabotajes.flatMap((s) => s.caen));
+  const vistos = new Set(sabotajes.flatMap((s) => Object.keys(s.caen)));
   return casos.map((c) => c.name).filter((n) => !vistos.has(n));
 }
 
 function sabotajesFantasma(casos, sabotajes) {
   const nombres = new Set(casos.map((c) => c.name));
-  return sabotajes.flatMap((s) => s.caen.filter((n) => !nombres.has(n)).map((n) => `${s.id} → ${n}`));
+  return sabotajes.flatMap((s) => Object.keys(s.caen).filter((n) => !nombres.has(n)).map((n) => `${s.id} → ${n}`));
 }
 
 test("scripts.test lista cada test/*.test.* y nada que no exista", () => {
@@ -51,7 +51,7 @@ test("cada caso, válido o inválido, lo ha visto caer al menos un sabotaje", ()
 
 test("el censo de sabotajes sabe fallar", () => {
   assert.deepEqual(casosSinSabotaje([...CASOS, { name: "caso nuevo" }], SABOTAJES), ["caso nuevo"]);
-  assert.deepEqual(sabotajesFantasma(CASOS, [...SABOTAJES, { id: "LX", caen: ["caso borrado"] }]), ["LX → caso borrado"]);
+  assert.deepEqual(sabotajesFantasma(CASOS, [...SABOTAJES, { id: "LX", caen: { "caso borrado": /x/ } }]), ["LX → caso borrado"]);
 });
 
 test("cada sabotaje se aplica: su ancla está una sola vez en la regla y el texto cambia", async () => {
@@ -59,14 +59,15 @@ test("cada sabotaje se aplica: su ancla está una sola vez en la regla y el text
   for (const s of SABOTAJES) {
     const roto = romper(FUENTE, s.de, s.a, s.id);
     assert.notEqual(roto, FUENTE, `${s.id} no cambió el texto`);
-    assert.ok(s.caen.length > 0, `${s.id} no espera que caiga nada`);
+    assert.ok(Object.keys(s.caen).length > 0, `${s.id} no espera que caiga nada`);
+    for (const re of Object.values(s.caen)) assert.ok(re instanceof RegExp, `${s.id}: cada causa es una expresión regular`);
   }
   assert.equal(new Set(SABOTAJES.map((s) => s.id)).size, SABOTAJES.length, "ids repetidos");
 });
 
-test("los huecos y límites declarados están escritos en docs, con el mismo código que su caso", () => {
-  const declarados = VALIDOS.filter((c) => /declarado/.test(c.name));
-  assert.ok(declarados.length >= 2, "faltan los casos del hueco y del límite");
+test("los huecos, límites y exenciones declarados están escritos en docs, con el mismo código que su caso", () => {
+  const declarados = VALIDOS.filter((c) => /declarad[oa]/.test(c.name));
+  assert.ok(declarados.length >= 6, `solo hay ${declarados.length} casos declarados`);
   for (const c of declarados) assert.ok(DOCS.includes(c.code), `docs no enseña el caso «${c.name}»: ${c.code}`);
 });
 

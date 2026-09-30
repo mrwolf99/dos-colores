@@ -68,7 +68,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-      - run: npx --yes -p typescript@7.0.2 tsc -p packages/ancla/test/tipos/tsconfig.json
+      - run: npx --yes -p typescript@7.0.2 tsc -p packages/ancla/tipos/tsconfig.json
       - run: git diff --exit-code && test -z "$(git status --porcelain)"
 
   raiz:

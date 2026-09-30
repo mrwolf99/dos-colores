@@ -112,3 +112,40 @@ test("la historia: lo que se borró del árbol sigue en los commits, y se ve", (
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("la historia: lo que entra solo por una fusión también se ve", () => {
+  const dir = temporal("limpieza-fusion-");
+  const git = (...a) =>
+    execFileSync("git", ["-c", "user.name=Prueba", "-c", "user.email=prueba@repo.test", "-c", "commit.gpgsign=false", ...a], {
+      cwd: dir,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+  try {
+    git("init", "-q", "-b", "principal");
+    fs.writeFileSync(path.join(dir, "a.md"), "a\n");
+    git("add", "a.md");
+    git("commit", "-q", "-m", "base");
+    git("checkout", "-q", "-b", "rama");
+    fs.writeFileSync(path.join(dir, "b.md"), "b\n");
+    git("add", "b.md");
+    git("commit", "-q", "-m", "rama");
+    git("checkout", "-q", "principal");
+    fs.writeFileSync(path.join(dir, "c.md"), "c\n");
+    git("add", "c.md");
+    git("commit", "-q", "-m", "principal");
+    git("merge", "-q", "--no-ff", "--no-commit", "rama");
+    // The leak is written in the merge itself: neither parent has it.
+    fs.writeFileSync(path.join(dir, "d.md"), `ver ${RUTA_FALSA}\n`);
+    git("add", "d.md");
+    git("commit", "-q", "-m", "fusión");
+    // The file stays: deleting it would put the line back in the history as a
+    // removed line of an ordinary commit, and the case would pass without -m.
+    const h = mirarHistoria(dir, null);
+    assert.ok(
+      h.hallazgos.some((x) => x.patron === "ruta de usuario absoluta"),
+      "la ruta que entró en la fusión no se ha visto en la historia",
+    );
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

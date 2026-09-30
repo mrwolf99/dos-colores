@@ -1,0 +1,36 @@
+{
+  "name": "eslint-plugin-ancla",
+  "version": "0.1.0",
+  "description": "ESLint rule that reports slice(indexOf(...)) and friends: a cut at a position that can be -1.",
+  "license": "MIT",
+  "author": "Samy Haggag (https://github.com/mrwolf99)",
+  "keywords": [
+    "eslint",
+    "eslintplugin",
+    "eslint-plugin",
+    "indexOf",
+    "slice"
+  ],
+  "main": "./index.cjs",
+  "exports": {
+    ".": "./index.cjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.cjs",
+    "rules/no-unchecked-slice.cjs",
+    "docs/rules/no-unchecked-slice.md"
+  ],
+  "peerDependencies": {
+    "eslint": ">=9"
+  },
+  "devDependencies": {
+    "eslint": "9.39.5"
+  },
+  "engines": {
+    "node": ">=18.18"
+  },
+  "scripts": {
+    "test": "node --test test/no-unchecked-slice.test.cjs test/sabotajes.test.cjs test/censo.test.cjs"
+  }
+}

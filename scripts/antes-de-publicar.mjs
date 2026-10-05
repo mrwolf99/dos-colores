@@ -12,7 +12,7 @@
 //       branch that was never merged stops here. It needs a full clone
 //       (fetch-depth: 0), or there is no origin/main to compare with. It only
 //       protects against a slip: whoever edits the workflow in the tagged
-//       commit can remove it, and that is why PUBLICAR.md repeats it by hand
+//       commit can remove it, and that is why the maintainer repeats it by hand
 //       before approving.
 //   node scripts/antes-de-publicar.mjs --entorno
 //       the job can publish by trusted publishing: it runs in GitHub Actions,

@@ -10,7 +10,7 @@
 // rule, every branch inside it.
 //
 // What this guard CANNOT see from the repository, and where it is seen
-// instead (PUBLICAR.md, "Lo que ninguna prueba del repositorio ve"):
+// instead (by the maintainer, outside the repository):
 //   - the trusted publisher on npmjs.com (owner, repository, publicar.yml,
 //     environment npm, and `permissions: stage publish` alone): `npm trust
 //     list`, with a session; the first run of the workflow measures the rest;

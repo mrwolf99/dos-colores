@@ -12,7 +12,7 @@
 #   level and publishes without provenance. Asked for, a missing provenance is
 #   a red.
 # - 0.1.0 is published by hand: npm cannot trust a publisher for a package that
-#   does not exist yet. The steps are in PUBLICAR.md.
+#   does not exist yet. The manual steps are kept outside the repository.
 #
 # test/publicar.test.mjs reads this file and turns red, naming the cause, if
 # any of these properties goes away. It reads it with test/_yaml.mjs, which
@@ -61,7 +61,7 @@ jobs:
     needs: [pruebas, etiqueta]
     runs-on: ubuntu-latest
     # The environment is part of the trust on npmjs.com, and on GitHub it only
-    # admits tags v*: see PUBLICAR.md.
+    # admits tags v*.
     environment: npm
     timeout-minutes: 15
     permissions:

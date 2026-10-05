@@ -39,7 +39,7 @@ de la limpieza, que no viaja con el repositorio.
 Los dos paquetes están en npm desde el 30 sep 2026:
 `npm install --save-dev @mrwolf99/ancla` y
 `npm install --save-dev eslint eslint-plugin-ancla`.
-[`PUBLICAR.md`](PUBLICAR.md) cuenta cómo sale cada versión.
+Cada versión sale por `.github/workflows/publicar.yml` al subir una etiqueta `vX.Y.Z`.
 
 Nothing to install for the root or `ancla`: Node 18 or later. The plugin needs
 ESLint 9 or later; without it its tests print `PARCIAL:` instead of faking a
@@ -50,7 +50,7 @@ cleanup, which never travels with the repository.
 Both packages are on npm since 30 Sep 2026:
 `npm install --save-dev @mrwolf99/ancla` and
 `npm install --save-dev eslint eslint-plugin-ancla`.
-[`PUBLICAR.md`](PUBLICAR.md) (in Spanish) tells how each release goes out.
+Each release goes out through `.github/workflows/publicar.yml` on a tag `vX.Y.Z`.
 
 ## Licencias · Licences
 

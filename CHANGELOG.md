@@ -64,4 +64,5 @@ next version on, releases come from `publicar.yml` with provenance.
   is not on its list is red. Every rule is seen falling alone under its own
   in-memory sabotage, and a census checks that every branch of the guard has
   been seen falling; the tarball of each package is compared, file by file,
-  with the list it must contain. `PUBLICAR.md` has the manual steps.
+  with the list it must contain. The manual steps (accounts, 2FA, approval)
+  are kept outside the repository.
